@@ -1,101 +1,119 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useState } from 'react';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [currentTime, setCurrentTime] = useState<string>('');
+  const [gmtOffset, setGmtOffset] = useState<string>('');
+  const [lunarDate, setLunarDate] = useState<string>('');
+  const [formData, setFormData] = useState({
+    year: '',
+    month: '',
+    day: '',
+    hour: '',
+  });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const localTime = now.toLocaleString('en-US', {
+        hour12: false,
+        timeZone: 'UTC',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+
+      const gmtOffsetHours = -now.getTimezoneOffset() / 60;
+      const gmtSign = gmtOffsetHours >= 0 ? '+' : '-';
+      const gmtFormatted = `GMT${gmtSign}${Math.abs(gmtOffsetHours)}`;
+
+      setCurrentTime(localTime.replace(',', ' '));
+      setGmtOffset(gmtFormatted);
+    };
+
+    updateTime(); // 初次执行
+    const interval = setInterval(updateTime, 1000); // 每秒更新
+    return () => clearInterval(interval); // 清理定时器
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // 调用后端 API
+    const res = await fetch('/api/convert-to-lunar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
+    const data = await res.json();
+    setLunarDate(data.lunarDate);
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
+      <h1 className="text-2xl font-bold mb-4">Current Time</h1>
+      <p className="text-lg mb-2">Local Time: {currentTime}</p>
+      <p className="text-lg">Timezone: {gmtOffset}</p>
+
+      <form onSubmit={handleSubmit} className="mt-8">
+        <div className="flex flex-col space-y-4">
+          <input
+            type="number"
+            name="year"
+            placeholder="Year (e.g., 1995)"
+            value={formData.year}
+            onChange={handleInputChange}
+            className="p-2 border border-gray-300 rounded"
+            required
+          />
+          <input
+            type="number"
+            name="month"
+            placeholder="Month (1-12)"
+            value={formData.month}
+            onChange={handleInputChange}
+            className="p-2 border border-gray-300 rounded"
+            required
+          />
+          <input
+            type="number"
+            name="day"
+            placeholder="Day (optional)"
+            value={formData.day}
+            onChange={handleInputChange}
+            className="p-2 border border-gray-300 rounded"
+          />
+          <input
+            type="number"
+            name="hour"
+            placeholder="Hour (optional)"
+            value={formData.hour}
+            onChange={handleInputChange}
+            className="p-2 border border-gray-300 rounded"
+          />
+          <button
+            type="submit"
+            className="p-2 bg-blue-500 text-white rounded hover:bg-blue-700"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            Submit
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </form>
+
+      {lunarDate && (
+        <div className="mt-4">
+          <h2 className="text-lg font-bold">Lunar Date:</h2>
+          <p>{lunarDate}</p>
+        </div>
+      )}
     </div>
   );
 }
